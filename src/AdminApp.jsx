@@ -472,19 +472,60 @@ function ClientDetail({ ent, onClose, onEdit, onToggle, onRegen, onDelete, onCre
 
 // ── Modal Modules ─────────────────────────────────────────────────────────────
 
-const ALL_MODULES = [
-  { key: 'dashboard',       label: 'Dashboard' },
-  { key: 'import-devis',    label: 'Nouveau Devis' },
-  { key: 'devis-catalogue', label: 'Devis Catalogue' },
-  { key: 'saisie',          label: 'Saisie Matériaux' },
-  { key: 'bons-regie',      label: 'Bons de Régie' },
-  { key: 'heures',          label: 'Mes Heures' },
-  { key: 'facturation',     label: 'Facturation' },
-  { key: 'employes',        label: 'Employés' },
-  { key: 'fiduciaire',      label: 'Fiduciaire' },
-  { key: 'ma-signature',    label: 'Ma Signature' },
-  { key: 'parametres',      label: 'Paramètres' },
+const TIERS = [
+  {
+    key: 'standard',
+    label: 'Standard',
+    description: 'Devis & facturation',
+    color: 'text-gray-700',
+    bg: 'bg-gray-100',
+    ring: 'ring-gray-200',
+    dot: 'bg-gray-400',
+    accent: 'text-gray-600',
+    checkAccent: 'accent-gray-600',
+    modules: [
+      { key: 'dashboard',       label: 'Dashboard' },
+      { key: 'devis-catalogue', label: 'Devis Catalogue' },
+      { key: 'facturation',     label: 'Facturation' },
+      { key: 'parametres',      label: 'Paramètres' },
+    ],
+  },
+  {
+    key: 'pro',
+    label: 'Pro',
+    description: 'Terrain & signature',
+    color: 'text-indigo-700',
+    bg: 'bg-indigo-50',
+    ring: 'ring-indigo-200',
+    dot: 'bg-indigo-500',
+    accent: 'text-indigo-600',
+    checkAccent: 'accent-indigo-600',
+    modules: [
+      { key: 'saisie',       label: 'Saisie Matériaux' },
+      { key: 'bons-regie',   label: 'Bons de Régie' },
+      { key: 'heures',       label: 'Mes Heures' },
+      { key: 'ma-signature', label: 'Ma Signature' },
+    ],
+  },
+  {
+    key: 'premium',
+    label: 'Premium',
+    description: 'RH & comptabilité',
+    color: 'text-amber-700',
+    bg: 'bg-amber-50',
+    ring: 'ring-amber-200',
+    dot: 'bg-amber-500',
+    accent: 'text-amber-600',
+    checkAccent: 'accent-amber-600',
+    modules: [
+      { key: 'employes',      label: 'Employés' },
+      { key: 'fiduciaire',    label: 'Fiduciaire' },
+      { key: 'import-devis',  label: 'Nouveau Devis' },
+    ],
+  },
 ]
+
+const ALL_MODULES = TIERS.flatMap(t => t.modules)
 
 function ModulesModal({ company, onClose }) {
   const { updateModules } = useCompaniesStore()
@@ -498,6 +539,12 @@ function ModulesModal({ company, onClose }) {
     return next
   })
 
+  const activateTier = (tier) => setSelected(s => {
+    const next = new Set(s)
+    tier.modules.forEach(m => next.add(m.key))
+    return next
+  })
+
   const handleSave = async () => {
     setSaving(true)
     await updateModules(company.id, [...selected])
@@ -507,7 +554,7 @@ function ModulesModal({ company, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
           <div>
             <h2 className="text-base font-semibold text-gray-800 flex items-center gap-2">
@@ -517,27 +564,58 @@ function ModulesModal({ company, onClose }) {
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
         </div>
-        <div className="p-5 space-y-1">
-          <div className="flex gap-3 mb-3">
-            <button onClick={() => setSelected(new Set(ALL_MODULES.map(m => m.key)))}
-              className="text-xs text-indigo-600 hover:underline font-medium">Tout cocher</button>
+
+        <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
+          {/* Boutons rapides */}
+          <div className="flex gap-2 flex-wrap">
+            {TIERS.map(tier => (
+              <button key={tier.key} onClick={() => activateTier(tier)}
+                className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg ring-1 ${tier.bg} ${tier.ring} ${tier.accent} transition-opacity hover:opacity-80`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${tier.dot}`} />
+                Activer {tier.label}
+              </button>
+            ))}
             <button onClick={() => setSelected(new Set())}
-              className="text-xs text-gray-400 hover:underline">Tout décocher</button>
+              className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 rounded-lg ring-1 ring-gray-100 hover:bg-gray-50 transition-colors">
+              Tout décocher
+            </button>
           </div>
-          {ALL_MODULES.map(m => (
-            <label key={m.key} className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-gray-50 cursor-pointer">
-              <input type="checkbox" checked={selected.has(m.key)} onChange={() => toggle(m.key)}
-                className="w-4 h-4 rounded accent-indigo-600" />
-              <span className="text-sm text-gray-700">{m.label}</span>
-            </label>
+
+          {/* Groupes par tier */}
+          {TIERS.map(tier => (
+            <div key={tier.key} className={`rounded-xl ring-1 overflow-hidden ${tier.ring}`}>
+              <div className={`flex items-center justify-between px-4 py-2.5 ${tier.bg}`}>
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${tier.dot}`} />
+                  <span className={`text-xs font-bold uppercase tracking-wide ${tier.color}`}>{tier.label}</span>
+                  <span className={`text-xs ${tier.accent} opacity-70`}>— {tier.description}</span>
+                </div>
+                <span className="text-xs text-gray-400">
+                  {tier.modules.filter(m => selected.has(m.key)).length}/{tier.modules.length}
+                </span>
+              </div>
+              <div className="divide-y divide-gray-50 bg-white">
+                {tier.modules.map(m => (
+                  <label key={m.key} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer">
+                    <input type="checkbox" checked={selected.has(m.key)} onChange={() => toggle(m.key)}
+                      className={`w-4 h-4 rounded ${tier.checkAccent}`} />
+                    <span className="text-sm text-gray-700">{m.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
-        <div className="flex justify-end gap-3 p-5 border-t border-gray-100">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Annuler</button>
-          <button onClick={handleSave} disabled={saving}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white text-sm font-semibold rounded-xl transition-colors">
-            {saving ? 'Enregistrement…' : 'Enregistrer'}
-          </button>
+
+        <div className="flex justify-between items-center gap-3 p-5 border-t border-gray-100">
+          <span className="text-xs text-gray-400">{selected.size} module{selected.size !== 1 ? 's' : ''} activé{selected.size !== 1 ? 's' : ''}</span>
+          <div className="flex gap-3">
+            <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Annuler</button>
+            <button onClick={handleSave} disabled={saving}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white text-sm font-semibold rounded-xl transition-colors">
+              {saving ? 'Enregistrement…' : 'Enregistrer'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
