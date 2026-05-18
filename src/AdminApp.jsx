@@ -11,25 +11,76 @@ import { supabase, callAdminFn } from './lib/supabase'
 
 // ── Login ────────────────────────────────────────────────────────────────────
 
+const MAX_ATTEMPTS = 5
+const LOCK_DURATION_MS = 2 * 60 * 1000 // 2 minutes
+
 function Login({ onLogin }) {
   const [email, setEmail] = useState('')
   const [mdp, setMdp] = useState('')
   const [show, setShow] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [attempts, setAttempts] = useState(0)
+  const [lockedUntil, setLockedUntil] = useState(() => {
+    const stored = sessionStorage.getItem('ng-locked-until')
+    return stored ? parseInt(stored, 10) : null
+  })
+  const [countdown, setCountdown] = useState(0)
+
+  // Countdown timer when locked
+  useEffect(() => {
+    if (!lockedUntil) return
+    const tick = () => {
+      const remaining = Math.ceil((lockedUntil - Date.now()) / 1000)
+      if (remaining <= 0) {
+        setLockedUntil(null)
+        setAttempts(0)
+        setCountdown(0)
+        sessionStorage.removeItem('ng-locked-until')
+      } else {
+        setCountdown(remaining)
+      }
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [lockedUntil])
+
+  const isLocked = lockedUntil && Date.now() < lockedUntil
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (isLocked) return
     setLoading(true); setError('')
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: mdp })
-      if (error) { setError('Identifiants incorrects.'); setLoading(false); return }
+      if (error) {
+        const newAttempts = attempts + 1
+        setAttempts(newAttempts)
+        if (newAttempts >= MAX_ATTEMPTS) {
+          const until = Date.now() + LOCK_DURATION_MS
+          setLockedUntil(until)
+          sessionStorage.setItem('ng-locked-until', String(until))
+        }
+        setError('Identifiants incorrects.'); setLoading(false); return
+      }
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single()
       if (profile?.role !== 'superadmin') {
         await supabase.auth.signOut()
+        const newAttempts = attempts + 1
+        setAttempts(newAttempts)
+        if (newAttempts >= MAX_ATTEMPTS) {
+          const until = Date.now() + LOCK_DURATION_MS
+          setLockedUntil(until)
+          sessionStorage.setItem('ng-locked-until', String(until))
+        }
         setError('Accès réservé aux administrateurs Newrigen.')
         setLoading(false); return
       }
+      // Success — reset rate limiting
+      setAttempts(0)
+      setLockedUntil(null)
+      sessionStorage.removeItem('ng-locked-until')
       onLogin()
     } catch { setError('Erreur de connexion.') }
     setLoading(false)
@@ -74,7 +125,14 @@ function Login({ onLogin }) {
           <h2 className="text-2xl font-bold text-gray-900 mb-1">Bon retour 👋</h2>
           <p className="text-gray-500 text-sm mb-8">Connectez-vous à votre espace admin</p>
 
-          {error && (
+          {isLocked && (
+            <div className="mb-5 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              Trop de tentatives. Réessayez dans {countdown} secondes.
+            </div>
+          )}
+
+          {error && !isLocked && (
             <div className="mb-5 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />{error}
             </div>
@@ -98,7 +156,7 @@ function Login({ onLogin }) {
                 </button>
               </div>
             </div>
-            <button type="submit" disabled={loading}
+            <button type="submit" disabled={loading || !!isLocked}
               className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 mt-2">
               {loading && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
               {loading ? 'Connexion…' : 'Se connecter'}
