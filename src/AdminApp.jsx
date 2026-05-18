@@ -381,6 +381,15 @@ function ClientDetail({ ent, onClose, onEdit, onToggle, onRegen, onDelete, onCre
   const [copied, setCopied] = useState(false)
   const copy = () => { navigator.clipboard.writeText(ent.licenceKey); setCopied(true); setTimeout(() => setCopied(false), 2000) }
 
+  // ── Membres de l'entreprise ─────────────────────────────────────────────────
+  const [membres, setMembres] = useState([])
+  const [loadingMembres, setLoadingMembres] = useState(true)
+  useEffect(() => {
+    setLoadingMembres(true)
+    supabase.from('profiles').select('id, nom, prenom, email, role, actif').eq('company_id', ent.id).order('role')
+      .then(({ data }) => { setMembres(data || []); setLoadingMembres(false) })
+  }, [ent.id])
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-white w-full max-w-md h-full overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -445,6 +454,45 @@ function ClientDetail({ ent, onClose, onEdit, onToggle, onRegen, onDelete, onCre
               <p className="text-sm text-gray-700">{ent.notes}</p>
             </div>
           )}
+
+          {/* Membres */}
+          <div>
+            <p className="text-xs text-gray-400 mb-2 uppercase tracking-wide font-medium flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5" /> Membres ({membres.length})
+            </p>
+            {loadingMembres ? (
+              <p className="text-xs text-gray-400 py-2">Chargement…</p>
+            ) : membres.length === 0 ? (
+              <p className="text-xs text-gray-400 py-2">Aucun membre enregistré.</p>
+            ) : (
+              <div className="space-y-2">
+                {membres.map(m => {
+                  const roleColor = m.role === 'patron'
+                    ? 'bg-indigo-50 text-indigo-700'
+                    : m.role === 'superadmin'
+                    ? 'bg-violet-50 text-violet-700'
+                    : 'bg-gray-100 text-gray-600'
+                  const initiale = (m.prenom?.[0] || m.nom?.[0] || m.email?.[0] || '?').toUpperCase()
+                  return (
+                    <div key={m.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border ${m.actif === false ? 'opacity-50 bg-gray-50 border-gray-100' : 'bg-white border-gray-100'}`}>
+                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 font-bold text-sm flex-shrink-0">
+                        {initiale}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">
+                          {[m.prenom, m.nom].filter(Boolean).join(' ') || m.email}
+                        </p>
+                        <p className="text-xs text-gray-400 truncate">{m.email}</p>
+                      </div>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${roleColor}`}>
+                        {m.role === 'patron' ? 'Patron' : m.role === 'superadmin' ? 'Admin' : 'Employé'}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
 
           <div className="grid grid-cols-2 gap-2 pt-1">
             <button onClick={onCreatePatron}
