@@ -595,7 +595,7 @@ const TIERS = [
     modules: [
       { key: 'bons-regie',   label: 'Bons de Régie' },
       { key: 'ma-signature', label: 'Ma Signature' },
-      { key: 'fiduciaire',   label: 'Fiduciaire' },
+      { key: 'fiduciaire',   label: "Rapport d'Heures" },
     ],
   },
 ]
