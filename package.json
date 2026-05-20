@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@sentry/react": "^10.53.1",
     "@supabase/supabase-js": "^2.105.3",
     "lucide-react": "^0.462.0",
     "react": "^18.3.1",
