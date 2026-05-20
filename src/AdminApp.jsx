@@ -576,6 +576,7 @@ const TIERS = [
       { key: 'import-devis',    label: 'Nouveau Devis' },
       { key: 'devis-catalogue', label: 'Devis Catalogue' },
       { key: 'saisie',          label: 'Saisie Matériaux' },
+      { key: 'mes-devis',       label: 'Mes Chantiers (employé)' },
       { key: 'heures',          label: 'Mes Heures' },
       { key: 'facturation',     label: 'Facturation' },
       { key: 'employes',        label: 'Employés' },
@@ -596,6 +597,8 @@ const TIERS = [
       { key: 'bons-regie',   label: 'Bons de Régie' },
       { key: 'ma-signature', label: 'Ma Signature' },
       { key: 'fiduciaire',   label: "Rapport d'Heures" },
+      { key: 'agenda',       label: 'Agenda' },
+      { key: 'soumissions',  label: 'Soumissions' },
     ],
   },
 ]
