@@ -11,6 +11,7 @@
     "@sentry/react": "^10.53.1",
     "@supabase/supabase-js": "^2.105.3",
     "lucide-react": "^0.462.0",
+    "posthog-js": "^1.374.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^5.0.1"
