@@ -5,7 +5,7 @@ import AdminApp from './AdminApp'
 import './index.css'
 
 Sentry.init({
-  dsn: 'https://071bdf9408528d4ac90794cb1cc37366@o4511423763513344.ingest.de.sentry.io/4511423846809680',
+  dsn: 'https://2ce32e93752527cddc7b011101bcab36@o4511423763513344.ingest.de.sentry.io/4511423862407253',
   environment: import.meta.env.MODE,
   integrations: [
     Sentry.browserTracingIntegration(),
