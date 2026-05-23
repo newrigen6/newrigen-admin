@@ -599,6 +599,7 @@ const TIERS = [
       { key: 'fiduciaire',   label: "Rapport d'Heures" },
       { key: 'agenda',       label: 'Agenda' },
       { key: 'soumissions',  label: 'Soumissions' },
+      { key: 'pre-compta',   label: 'Pré-comptabilité' },
     ],
   },
 ]
