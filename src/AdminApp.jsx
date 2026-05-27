@@ -1092,10 +1092,11 @@ export default function AdminApp() {
     return () => subscription.unsubscribe()
   }, [])
 
-  const handleLogout = () => {
-    // UI responds instantly — signOut fires in background
+  const handleLogout = async () => {
+    // On attend que signOut() finisse pour effacer la session du localStorage
+    // sinon un refresh après déconnexion rouvre la session
+    await supabase.auth.signOut()
     setAuthed(false)
-    supabase.auth.signOut().catch(() => {})
   }
 
   if (checking) return (
