@@ -7,21 +7,21 @@ export const supabase = createClient(
 
 export async function callAdminFn(action, data) {
   const { data: { session } } = await supabase.auth.getSession()
-  const res = await supabase.functions.invoke('admin-user', {
-    body: { action, ...data },
-    headers: { Authorization: `Bearer ${session?.access_token}` },
+
+  // On utilise fetch directement pour lire le vrai JSON d'erreur
+  // (le SDK Supabase écrase toujours le message avec un texte générique)
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-user`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${session?.access_token}`,
+      'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ action, ...data }),
   })
 
-  if (res.error) {
-    // Supabase JS v2 : le vrai message d'erreur de la fonction est dans res.error.context
-    const ctx = res.error.context
-    const detail = ctx?.error          // { "error": "..." }  ← notre format
-                || ctx?.message        // format alternatif
-                || (typeof ctx === 'string' ? ctx : null)
-                || res.error.message   // fallback générique SDK
-    throw new Error(detail)
-  }
-
-  if (res.data?.error) throw new Error(res.data.error)
-  return res.data
+  const json = await res.json()
+  if (!res.ok || json.error) throw new Error(json.error || 'Erreur inconnue')
+  return json
 }
