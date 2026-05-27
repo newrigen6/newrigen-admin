@@ -4,7 +4,7 @@ import {
   Trash2, Edit, Copy, Check, AlertTriangle, RefreshCw,
   X, Users, UserPlus, LogOut, ChevronRight, Calendar,
   TrendingUp, Clock, Crown, UserCheck, Slash, KeyRound,
-  Menu, LayoutDashboard, Bell, Zap, LayoutGrid
+  Menu, LayoutDashboard, Bell, Zap, LayoutGrid, Mail
 } from 'lucide-react'
 import { useCompaniesStore } from './store/companiesStore'
 import { supabase, callAdminFn } from './lib/supabase'
@@ -432,7 +432,7 @@ function ChangePwdModal({ onClose }) {
 
 // ── Fiche client ──────────────────────────────────────────────────────────────
 
-function ClientDetail({ ent, onClose, onEdit, onToggle, onRegen, onDelete, onCreatePatron }) {
+function ClientDetail({ ent, onClose, onEdit, onToggle, onRegen, onDelete, onCreatePatron, onChangeEmail }) {
   const fmt = (d) => d ? new Date(d).toLocaleDateString('fr-CH') : '—'
   const expired = ent.dateExpiration && new Date(ent.dateExpiration) < new Date()
   const expiresSoon = ent.dateExpiration && !expired && (new Date(ent.dateExpiration) - new Date()) / 86400000 <= 7
@@ -539,6 +539,10 @@ function ClientDetail({ ent, onClose, onEdit, onToggle, onRegen, onDelete, onCre
               className="flex items-center justify-center gap-2 py-3 text-sm font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors">
               <UserPlus className="w-4 h-4" />Créer patron
             </button>
+            <button onClick={onChangeEmail}
+              className="flex items-center justify-center gap-2 py-3 text-sm font-semibold text-violet-700 bg-violet-50 hover:bg-violet-100 rounded-xl transition-colors">
+              <Mail className="w-4 h-4" />Email patron
+            </button>
             <button onClick={onToggle}
               className={`flex items-center justify-center gap-2 py-3 text-sm font-semibold rounded-xl transition-colors ${ent.statut === 'bloqué' ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'bg-red-50 text-red-700 hover:bg-red-100'}`}>
               {ent.statut === 'bloqué' ? <><Unlock className="w-4 h-4" />Débloquer</> : <><Lock className="w-4 h-4" />Bloquer</>}
@@ -555,6 +559,103 @@ function ClientDetail({ ent, onClose, onEdit, onToggle, onRegen, onDelete, onCre
         </div>
       </div>
     </div>
+  )
+}
+
+// ── Modal Email Patron ────────────────────────────────────────────────────────
+
+function PatronEmailModal({ company, onClose }) {
+  const [patrons, setPatrons] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [selectedId, setSelectedId] = useState(null)
+  const [newEmail, setNewEmail] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
+
+  useEffect(() => {
+    supabase.from('profiles').select('id, nom, email').eq('company_id', company.id).eq('role', 'patron')
+      .then(({ data }) => {
+        setPatrons(data || [])
+        if (data?.length === 1) { setSelectedId(data[0].id); setNewEmail(data[0].email || '') }
+        setLoading(false)
+      })
+  }, [company.id])
+
+  const selectedPatron = patrons.find(p => p.id === selectedId)
+
+  const handleSave = async () => {
+    if (!newEmail.trim() || !selectedId) return
+    if (newEmail.trim() === selectedPatron?.email) { setError('C\'est déjà cet email.'); return }
+    setSaving(true); setError('')
+    try {
+      await callAdminFn('updateEmail', { userId: selectedId, newEmail: newEmail.trim().toLowerCase() })
+      setSuccess(true)
+      setTimeout(onClose, 1800)
+    } catch (e) { setError(e.message || 'Erreur lors du changement.') }
+    setSaving(false)
+  }
+
+  return (
+    <Modal title="Changer l'email du patron" subtitle={company.nom} onClose={onClose}>
+      {success ? (
+        <div className="flex flex-col items-center py-10">
+          <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+            <Check className="w-7 h-7 text-emerald-600" />
+          </div>
+          <p className="font-bold text-gray-900">Email mis à jour !</p>
+          <p className="text-sm text-gray-500 mt-1">Le patron peut se connecter avec le nouvel email.</p>
+        </div>
+      ) : (
+        <div className="p-6 space-y-4">
+          {error && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</p>}
+
+          {loading ? (
+            <p className="text-sm text-gray-400 text-center py-4">Chargement…</p>
+          ) : patrons.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">Aucun patron trouvé pour cette entreprise.</p>
+          ) : (
+            <>
+              {patrons.length > 1 && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Patron</label>
+                  <select value={selectedId || ''} onChange={e => {
+                    setSelectedId(e.target.value)
+                    const p = patrons.find(p => p.id === e.target.value)
+                    setNewEmail(p?.email || '')
+                  }} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50/50">
+                    <option value="">Sélectionner…</option>
+                    {patrons.map(p => <option key={p.id} value={p.id}>{p.nom} — {p.email}</option>)}
+                  </select>
+                </div>
+              )}
+
+              {selectedPatron && (
+                <div className="bg-gray-50 rounded-xl p-3 text-sm text-gray-500">
+                  Email actuel : <span className="font-semibold text-gray-800">{selectedPatron.email || '—'}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Nouvel email</label>
+                <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)}
+                  placeholder="nouveau@email.com"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50/50" />
+              </div>
+            </>
+          )}
+
+          <div className="flex gap-3 pt-1">
+            <button onClick={onClose} className="flex-1 py-3 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl">Annuler</button>
+            <button onClick={handleSave} disabled={saving || !selectedId || !newEmail.trim() || loading}
+              className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white text-sm font-semibold rounded-xl flex items-center justify-center gap-2">
+              {saving && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+              {saving ? 'Enregistrement…' : 'Changer l\'email'}
+            </button>
+          </div>
+        </div>
+      )}
+    </Modal>
   )
 }
 
@@ -715,6 +816,7 @@ function ClientsTab() {
   const [detailEnt, setDetailEnt] = useState(null)
   const [patronCompany, setPatronCompany] = useState(null)
   const [modulesCompany, setModulesCompany] = useState(null)
+  const [emailPatronCompany, setEmailPatronCompany] = useState(null)
 
   const filtered = useMemo(() => {
     let list = [...companies]
@@ -861,10 +963,12 @@ function ClientsTab() {
           onRegen={() => regenLicence(detailEnt.id)}
           onDelete={() => handleDelete(detailEnt)}
           onCreatePatron={() => { setPatronCompany(detailEnt); setDetailEnt(null) }}
+          onChangeEmail={() => { setEmailPatronCompany(detailEnt); setDetailEnt(null) }}
         />
       )}
       {patronCompany && <AccountModal title="Créer un compte patron" subtitle={patronCompany.nom} role="patron" companyId={patronCompany.id} onClose={() => setPatronCompany(null)} />}
       {modulesCompany && <ModulesModal company={companies.find(c => c.id === modulesCompany.id) || modulesCompany} onClose={() => setModulesCompany(null)} />}
+      {emailPatronCompany && <PatronEmailModal company={emailPatronCompany} onClose={() => setEmailPatronCompany(null)} />}
     </div>
   )
 }
