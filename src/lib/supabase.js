@@ -11,6 +11,11 @@ export async function callAdminFn(action, data) {
     body: { action, ...data },
     headers: { Authorization: `Bearer ${session?.access_token}` },
   })
-  if (res.error) throw new Error(res.error.message)
+  // Extraire le vrai message d'erreur depuis le body de la fonction (pas le message générique SDK)
+  if (res.error) {
+    const detail = res.data?.error || res.error.message
+    throw new Error(detail)
+  }
+  if (res.data?.error) throw new Error(res.data.error)
   return res.data
 }
