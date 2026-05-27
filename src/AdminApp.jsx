@@ -199,7 +199,7 @@ function PlanBadge({ plan }) {
 const PLANS = ['mensuel', 'annuel', 'essai gratuit']
 const STATUTS = ['actif', 'essai', 'bloqué']
 const defaultForm = {
-  nom: '', contact: '', email: '', telephone: '', ville: '',
+  nom: '', contact: '', email: '', telephone: '', npa: '', ville: '',
   plan: 'mensuel', statut: 'actif',
   dateInscription: new Date().toISOString().slice(0, 10),
   datePaiement: '', dateExpiration: '', notes: '',
@@ -237,6 +237,7 @@ function EntrepriseModal({ initial, onSave, onClose }) {
     { label: 'Contact', key: 'contact', type: 'text', placeholder: 'Jean Dupont' },
     { label: 'Email', key: 'email', type: 'email', placeholder: 'contact@entreprise.ch' },
     { label: 'Téléphone', key: 'telephone', type: 'tel', placeholder: '+41 79 000 00 00' },
+    { label: 'NPA', key: 'npa', type: 'text', placeholder: '1000' },
     { label: 'Ville', key: 'ville', type: 'text', placeholder: 'Lausanne' },
     { label: 'Inscription', key: 'dateInscription', type: 'date' },
     { label: 'Dernier paiement', key: 'datePaiement', type: 'date' },
@@ -458,7 +459,7 @@ function ClientDetail({ ent, onClose, onEdit, onToggle, onRegen, onDelete, onCre
             </div>
             <div>
               <h3 className="font-bold text-gray-900">{ent.nom}</h3>
-              <p className="text-xs text-gray-400">{ent.ville || 'Ville non renseignée'}</p>
+              <p className="text-xs text-gray-400">{[ent.npa, ent.ville].filter(Boolean).join(' ') || 'Ville non renseignée'}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-xl text-gray-400"><X className="w-4 h-4" /></button>
@@ -484,7 +485,7 @@ function ClientDetail({ ent, onClose, onEdit, onToggle, onRegen, onDelete, onCre
               ['Contact', ent.contact || '—'], ['Email', ent.email || '—'],
               ['Téléphone', ent.telephone || '—'], ['Plan', ent.plan],
               ['Inscrit le', fmt(ent.dateInscription)], ['Dernier paiement', fmt(ent.datePaiement)],
-              ['Expiration', fmt(ent.dateExpiration)], ['Ville', ent.ville || '—'],
+              ['Expiration', fmt(ent.dateExpiration)], ['NPA / Ville', [ent.npa, ent.ville].filter(Boolean).join(' ') || '—'],
             ].map(([label, val]) => (
               <div key={label} className="bg-gray-50 rounded-xl p-3">
                 <p className="text-xs text-gray-400 mb-0.5">{label}</p>

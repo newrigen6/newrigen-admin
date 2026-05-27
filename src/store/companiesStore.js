@@ -13,6 +13,7 @@ function fromDB(c) {
     contact: c.contact || '',
     email: c.email || '',
     telephone: c.telephone || '',
+    npa: c.npa || '',
     ville: c.ville || '',
     plan: c.plan || 'mensuel',
     statut: c.statut || 'actif',
@@ -32,6 +33,7 @@ function toDB(data) {
   if (data.contact !== undefined) row.contact = data.contact
   if (data.email !== undefined) row.email = data.email
   if (data.telephone !== undefined) row.telephone = data.telephone
+  if (data.npa !== undefined) row.npa = data.npa
   if (data.ville !== undefined) row.ville = data.ville
   if (data.plan !== undefined) row.plan = data.plan
   if (data.statut !== undefined) row.statut = data.statut
